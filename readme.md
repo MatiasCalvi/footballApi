@@ -1,6 +1,4 @@
-#FootballAPI
-
-## API de Juego de Cartas de Fútbol 
+<h1 style="font-size: 36px;">FootballAPI -- API de Juego de Cartas de Fútbol</h1>
 
 ## Descripción
 
