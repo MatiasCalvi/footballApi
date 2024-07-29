@@ -1,0 +1,214 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  id               Int              @id @default(autoincrement())
+  name             String
+  userName         String
+  email            String           @unique
+  password         String
+  rolId            Int
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime?        @updatedAt
+  status           String           @default("1")
+  gamesWon         Int              @default(0)
+  gamesLost        Int              @default(0)
+  experienceGained Int              @default(0)
+  playerLevel      Int              @default(1)
+  lastname         String
+  deckOfCards      DeckOfCards[]
+  gameHistories    GameHistory[]    @relation("user")
+  gamesPlayed1     Game[]           @relation("Player1")
+  gamesPlayed2     Game[]           @relation("Player2")
+  player           Player?          @relation("PlayerUser")
+  ownedRooms       Room[]           @relation("Owner")
+  joinedRooms      Room[]           @relation("Player")
+  userCollections  UserCollection[]
+  rol              Role             @relation(fields: [rolId], references: [id])
+
+  @@map("users")
+}
+
+model Player {
+  id       Int    @id @default(autoincrement())
+  userId   Int    @unique
+  life     Int    @default(100)
+  userName String
+  user     Users  @relation("PlayerUser", fields: [userId], references: [id])
+
+  @@map("players")
+}
+
+model Role {
+  id                  Int                   @id @default(autoincrement())
+  name                String
+  rolesAndPermissions RolesAndPermissions[]
+  users               Users[]
+
+  @@map("roles")
+}
+
+model Permissions {
+  id                  Int                   @id @default(autoincrement())
+  name                String
+  description         String
+  rolesAndPermissions RolesAndPermissions[]
+
+  @@map("permissions")
+}
+
+model RolesAndPermissions {
+  id           Int         @id @default(autoincrement())
+  roleId       Int
+  permissionId Int
+  Permissions  Permissions @relation(fields: [permissionId], references: [id])
+  Role         Role        @relation(fields: [roleId], references: [id])
+
+  @@map("roles_and_permissions")
+}
+
+model Card {
+  id                Int        @id @default(autoincrement())
+  name              String
+  description       String?
+  type              CardType
+  attack            Int?
+  defense           Int?
+  effect            String?
+  category          Category
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime?  @updatedAt
+  isDefeated        Boolean    @default(false)
+  isDiscarded       Boolean    @default(false)
+  isInPlay          Boolean    @default(false)
+  playerState       Int        @default(100)
+  assists           Int?       @default(0)
+  assistsFromBand   Int?       @default(0)
+  attackEfficiency  Int?       @default(0)
+  ballRecovery      Int?       @default(0)
+  bandRises         Int?       @default(0)
+  controlBall       Int?       @default(0)
+  defensiveSolidity Int?       @default(0)
+  distribution      Int?       @default(0)
+  dribbling         Int?       @default(0)
+  passPrecision     Int?       @default(0)
+  polivalency       Int?       @default(0)
+  speed             Int?       @default(0)
+  strength          Int?       @default(0)
+  creativity        Int?       @default(0)
+  explosiveness     Int?       @default(0)
+  acceleration      Int?       @default(0)
+  heading           Int?       @default(0)
+  jumping           Int?       @default(0)
+  userDecks         DeckCard[]
+
+  @@map("cards")
+}
+
+model DeckCard {
+  id          Int         @id @default(autoincrement())
+  deckId      Int
+  cardId      Int
+  Card        Card        @relation(fields: [cardId], references: [id], map: "DeckCard_cardId_fkey")
+  DeckOfCards DeckOfCards @relation(fields: [deckId], references: [id], map: "DeckCard_deckId_fkey", onDelete: Cascade)
+}
+
+model DeckOfCards {
+  id              Int              @id @default(autoincrement())
+  name            String
+  userId          Int
+  cards           DeckCard[]
+  Users           Users            @relation(fields: [userId], references: [id])
+  userCollections UserCollection[]
+  @@unique([userId, name])
+}
+
+model UserCollection {
+  id            Int         @id @default(autoincrement())
+  userId        Int
+  deckOfCardsId Int
+  DeckOfCards   DeckOfCards @relation(fields: [deckOfCardsId], references: [id])
+  Users         Users       @relation(fields: [userId], references: [id])
+
+  @@map("user_collections")
+}
+
+model Room {
+  id        Int      @id @default(autoincrement())
+  ownerId   Int?
+  playerId  Int?
+  isPrivate Boolean  @default(false)
+  password  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isActive  Boolean  @default(true)
+  status    String?  @default("ACTIVE")
+  games     Game[]   @relation("RoomGames")
+  owner     Users?   @relation("Owner", fields: [ownerId], references: [id], onDelete: Cascade)
+  player    Users?   @relation("Player", fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@map("rooms")
+}
+
+model Game {
+  id             Int           @id @default(autoincrement())
+  roomId         Int
+  player1Id      Int
+  player2Id      Int?
+  duration       Int           @default(30)
+  winnerId       Int?
+  status         GameStatus    @default(ONGOING)
+  startedAt      DateTime      @default(now())
+  endedAt        DateTime?
+  experienceLose Int           @default(0)
+  experienceWin  Int           @default(0)
+  gameHistories  GameHistory[] @relation("game")
+  player1        Users         @relation("Player1", fields: [player1Id], references: [id])
+  player2        Users?        @relation("Player2", fields: [player2Id], references: [id])
+  room           Room          @relation("RoomGames", fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@map("games")
+}
+
+model GameHistory {
+  id               Int        @id @default(autoincrement())
+  userId           Int
+  gameId           Int
+  gameDate         DateTime   @default(now())
+  duration         Int
+  experienceGained Int
+  gameStatus       GameStatus
+  createdAt        DateTime   @default(now())
+  game             Game       @relation("game", fields: [gameId], references: [id])
+  user             Users      @relation("user", fields: [userId], references: [id])
+
+  @@map("game_history")
+}
+
+enum GameStatus {
+  ONGOING
+  COMPLETED
+  ABANDONED
+}
+
+enum CardType {
+  PLAYER
+  DECISION
+  MYSTIQUE
+}
+
+enum Category {
+  ATTACKER
+  MIDFIELDER
+  DEFENDER
+  GOALKEEPER
+  VAR
+  STADIUM
+  TACTIC
+}
